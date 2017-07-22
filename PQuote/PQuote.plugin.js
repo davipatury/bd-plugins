@@ -11,36 +11,38 @@ class PQuote {
 	unload() {}
 	
 	start() {
-		PluginHelper.AutoUpdater.checkForUpdates({
-			version: this.getVersion(),
-			jsonUrl: '',
-			pluginUrl: '',
-			name: this.getName();
-		});
-		
-		let self = this;
+		if(PluginHelper) {
+			PluginHelper.AutoUpdater.checkForUpdates({
+				version: this.getVersion(),
+				jsonUrl: 'https://raw.githubusercontent.com/davipatury/bd-plugins/master/PQuote/PQuote.json',
+				pluginUrl: 'https://raw.githubusercontent.com/davipatury/bd-plugins/master/PQuote/PQuote.plugin.js',
+				name: this.getName();
+			});
 			
-		PluginHelper.ContextMenu.addOptionToMessageContextMenu(
-			'Quote',
-			null,
-			function(props) {
-				self.quoteMessage(props);
+			let self = this;
+				
+			PluginHelper.ContextMenu.addOptionToMessageContextMenu(
+				'Quote',
+				null,
+				function(props) {
+					self.quoteMessage(props);
+				}
+			);
+				
+			PluginHelper.MessageButtons.addButtonToMessages(
+				'btn-quote',
+				'Quote',
+				function(props) {
+					self.quoteMessage(props);
+				}
+			);
+				
+			this.patchSendMessageQuoted();
+			this.injectCSS();
+			
+			if(bdPluginStorage.get('PQuote', 'quoteFullMessage') == null) {
+				bdPluginStorage.set('PQuote', 'quoteFullMessage', false);
 			}
-		);
-			
-		PluginHelper.MessageButtons.addButtonToMessages(
-			'btn-quote',
-			'Quote',
-			function(props) {
-				self.quoteMessage(props);
-			}
-		);
-			
-		this.patchSendMessageQuoted();
-		this.injectCSS();
-		
-		if(bdPluginStorage.get('PQuote', 'quoteFullMessage') == null) {
-			bdPluginStorage.set('PQuote', 'quoteFullMessage', false);
 		}
 	}
 	

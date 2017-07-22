@@ -432,8 +432,8 @@ class PluginHelper {
 		
 		PluginHelper.AutoUpdater.checkForUpdates({
 			version: this.getVersion(),
-			jsonUrl: '',
-			pluginUrl: '',
+			jsonUrl: 'https://raw.githubusercontent.com/davipatury/bd-plugins/master/pluginHelper/pluginHelper.json',
+			pluginUrl: 'https://raw.githubusercontent.com/davipatury/bd-plugins/master/pluginHelper/pluginHelper.plugin.js',
 			name: this.getName();
 		});
 	}
@@ -455,7 +455,7 @@ class PluginHelper {
 	}
 	
 	getVersion() {
-		return "1.2";
+		return "2.0";
 	}
 	
 	getAuthor() {
