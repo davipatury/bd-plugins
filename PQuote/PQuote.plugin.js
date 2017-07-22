@@ -16,7 +16,7 @@ class PQuote {
 				version: this.getVersion(),
 				jsonUrl: 'https://raw.githubusercontent.com/davipatury/bd-plugins/master/PQuote/PQuote.json',
 				pluginUrl: 'https://raw.githubusercontent.com/davipatury/bd-plugins/master/PQuote/PQuote.plugin.js',
-				name: this.getName();
+				name: this.getName()
 			});
 			
 			let self = this;
@@ -60,11 +60,11 @@ class PQuote {
 	}
 	
 	getDescription() {
-		return "With this plugin you can quote someone else's message. This plugin requires DiscordInternals and PluginHelper plugins.";
+		return "With this plugin you can quote someone else's message. This plugin requires PluginHelper plugins.";
 	}
 	
 	getVersion() {
-		return "1.5";
+		return "2.0";
 	}
 	
 	getAuthor() {

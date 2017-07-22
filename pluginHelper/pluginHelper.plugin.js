@@ -428,13 +428,13 @@ class PluginHelper {
 	unload() {}
 	
 	start() {
-		this.patchSendMessageWithEmbed()
+		this.patchSendMessageWithEmbed();
 		
 		PluginHelper.AutoUpdater.checkForUpdates({
 			version: this.getVersion(),
 			jsonUrl: 'https://raw.githubusercontent.com/davipatury/bd-plugins/master/pluginHelper/pluginHelper.json',
 			pluginUrl: 'https://raw.githubusercontent.com/davipatury/bd-plugins/master/pluginHelper/pluginHelper.plugin.js',
-			name: this.getName();
+			name: this.getName()
 		});
 	}
 	
@@ -447,7 +447,7 @@ class PluginHelper {
 	}
 	
 	getName() {
-		return "PluginHelper";
+		return "pluginHelper";
 	}
 	
 	getDescription() {
@@ -740,7 +740,7 @@ PluginHelper.AutoUpdater = class {
 	static update(pluginInfo) {
 		if(confirm(`There is an update for ${pluginInfo.name}.  Would you like to update now?`)) {
 			let fs = require('fs'),
-				file = fs.createWriteStream(`${PluginHelper.AutoUpdater.getPluginPath()} ${pluginInfo.name}.plugin.js`);
+				file = fs.createWriteStream(`${PluginHelper.AutoUpdater.getPluginPath()}${pluginInfo.name}.plugin.js`);
 			
 			require('https').get(pluginInfo.pluginUrl, function(response) {
 				response.pipe(file);
