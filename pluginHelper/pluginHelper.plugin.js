@@ -724,17 +724,15 @@ PluginHelper.NotificationHelper = class {
 PluginHelper.AutoUpdater = class {
 	
 	static checkForUpdates(pluginInfo) {
-		$.get(
-			pluginInfo.jsonUrl,
-			{
-				dataType: 'json'
-			},
-			function(data) {
+		require('https').get(pluginInfo.jsonUrl, function(res) {
+			res.setEncoding('utf8');
+			res.on('data', function(body) {
+				let data = JSON.parse(body);
 				if(pluginInfo.version != data.version) {
 					PluginHelper.AutoUpdater.update(pluginInfo);
 				}
-			}
-		);
+			});
+		});
 	}
 	
 	static update(pluginInfo) {
