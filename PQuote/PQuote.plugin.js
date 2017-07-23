@@ -107,25 +107,29 @@ class PQuote {
 		}
 	}
 	
-	clearQuote() {
+	clearQuote(useAnimation) {
 		this.quote.messageGroup.messages.forEach(function(message, i) {
 			message.quoteDeleted = false;
 		});
 		this.quote = null;
 		$(".quote-delete").off('click.pQuote');
-		$(".quote-msg").animate(
-			{top: $('.quote-msg').height()},
-			1000,
-			function() {
-				$(".quote-msg").remove();
-			}
-		);
+		
+		if (useAnimation) {
+			$(".quote-msg").animate(
+				{top: $('.quote-msg').height()},
+				1000,
+				function() {
+					$(".quote-msg").remove();
+				}
+			);
+		} else {
+			$(".quote-msg").remove();
+		}
 	}
 	
 	removeFromQuote(props) {
 		if (this.quote) {
 			let undeletedMessages = this.quote.messageGroup.messages.filter(message => !message.quoteDeleted);
-			console.log(undeletedMessages)
 			if (undeletedMessages.length <= 1) {
 				this.clearQuote();
 			} else {
@@ -144,15 +148,17 @@ class PQuote {
 	}
 	
 	quoteMessage(props, quoteAllMessage) {
+		let useAnimation = true;
 		if (this.quote) {
-			this.clearQuote();
+			this.clearQuote(false);
+			useAnimation = false;
 		}
 		this.quote = props;
-		this.cloneMessage(props, quoteAllMessage);
+		this.cloneMessage(props, quoteAllMessage, useAnimation);
 		MessageActions.jumpToMessage(props.channel.id, props.message.id);
 	}
 	
-	cloneMessage(props, quoteAllMessage) {
+	cloneMessage(props, quoteAllMessage, useAnimation) {
 		$('form:has(.channel-text-area-default)').before(`<div class="quote-msg"></div>`);
 		
 		let self = this,
@@ -187,13 +193,17 @@ class PQuote {
 					self.clearQuote();
 				});
 				
-				$('.quote-msg')
+				if(useAnimation) {
+					$('.quote-msg')
 					.css('top', $('.quote-msg').height()+'px')
 					.show()
 					.animate(
 						{top: '0px'},
 						1000
 					);
+				} else {
+					$('.quote-msg').show();
+				}
 			}
 		);
 	}
