@@ -455,7 +455,7 @@ class PluginHelper {
 	}
 	
 	getVersion() {
-		return "2.0";
+		return "2.1";
 	}
 	
 	getAuthor() {
@@ -513,10 +513,11 @@ PluginHelper.ContextMenu = class {
 		this.addOptionToContextMenu('GuildContextMenu', label, hint, action, cancelId);
 	}
 	
-	static addOptionToContextMenu(contextMenuId, label, hint, action, cancelId) {
+	static addOptionToContextMenu(contextMenuId, label, hint, action, filter, cancelId) {
 		ReactComponents.get(contextMenuId, ContextMenu => {
 			const cancel = Renderer.patchRender(ContextMenu, [
 				{
+					filter: filter,
 					selector: {
 						type: ContextMenuItemsGroup,
 					},
@@ -660,11 +661,12 @@ PluginHelper.Modals = class {
 
 PluginHelper.MessageButtons = class {
 	
-	static addButtonToMessages(className, tooltip, action, cancelId) {
+	static addButtonToMessages(className, tooltip, action, filter, cancelId) {
 		ReactComponents.get('Message', Message => {
 			const Tooltip = WebpackModules.findByDisplayName('Tooltip');
 			const cancel = Renderer.patchRender(Message, [
 				{
+					filter: filter,
 					selector: {
 						className: 'markup',
 					},
