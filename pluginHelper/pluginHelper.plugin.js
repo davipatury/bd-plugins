@@ -428,7 +428,7 @@ class PluginHelper {
 	unload() {}
 	
 	start() {
-		this.patchCustomSendMessage();
+		this.patchSendMessageWithEmbed();
 		
 		PluginHelper.AutoUpdater.checkForUpdates({
 			version: this.getVersion(),
@@ -455,7 +455,7 @@ class PluginHelper {
 	}
 	
 	getVersion() {
-		return "2.1";
+		return "2.3";
 	}
 	
 	getAuthor() {
@@ -468,33 +468,26 @@ class PluginHelper {
 		}
 	}
 	
-	patchCustomSendMessage() {
+	patchSendMessageWithEmbed() {
 		const cancel = monkeyPatch(MessageActions, '_sendMessage', {
 			before: ({methodArguments: [channel, message]}) => {
-				if (message.embed || message.isEmpty) {
+				if (message.embed) {
 					monkeyPatch(MessageQueue, 'enqueue', {
 						once: true,
 						before: ({methodArguments: [action]}) => {
 							if (action.type === 'send') {
-								if(message.embed) {
-									action.message.embed = message.embed;
-								}
-								if(message.isEmpty) {
-									action.message.content = "";
-								}
+								action.message.embed = message.embed;
 							}
 						}
 					});
-					if(message.embed) {
-						monkeyPatch(MessageParser, 'createMessage', {
-							once: true,
-							after: ({returnValue}) => {
-								if (returnValue) {
-									returnValue.embeds.push(message.embed);
-								}
+					monkeyPatch(MessageParser, 'createMessage', {
+						once: true,
+						after: ({returnValue}) => {
+							if (returnValue) {
+								returnValue.embeds.push(message.embed);
 							}
-						});
-					}
+						}
+					});
 				}
 			}
 		});

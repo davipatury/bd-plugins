@@ -5,7 +5,6 @@ class PQuote {
 	constructor() {
 		this.quote = null;
 		this.shifted = false;
-		this.emptyMessage = false;
 		PQuote.cancelPatches = [];
 	}
 	
@@ -96,7 +95,7 @@ class PQuote {
 	}
 	
 	getVersion() {
-		return "2.1";
+		return "2.3";
 	}
 	
 	getAuthor() {
@@ -234,10 +233,6 @@ class PQuote {
 		const cancel = monkeyPatch(MessageActions, 'sendMessage', {
 			before: ({methodArguments: [channel, message]}) => {
 				if (self.quote) {
-					if (self.emptyMessage) {
-						message.isEmpty = true;
-						self.emptyMessage = false;
-					}
 					let quotedMessage = self.quote.message;
 					let quotedChannel = self.quote.channel;
 					let quotedMessageGroup = self.quote.messageGroup;
@@ -327,8 +322,15 @@ class PQuote {
 		const cancel = monkeyPatch(self.getTextAreaInstance(), 'handleSendMessage', {
 			instead: ({methodArguments: [e], originalMethod}) => {
 				if (self.quote && 0 === e.length) {
-					e = "there is nothing here bro";
-					self.emptyMessage = true;
+					e = `${Math.round(+new Date()/1000)}`;
+					monkeyPatch(MessageQueue, 'enqueue', {
+						once: true,
+						before: ({methodArguments: [action]}) => {
+							if (action.type === 'send' && action.message.content == e) {
+								action.message.content = "";
+							}
+						}
+					});
 				}
 				originalMethod(e);
 			}
