@@ -428,7 +428,7 @@ class PluginHelper {
 	unload() {}
 	
 	start() {
-		this.patchSendMessageWithEmbed();
+		this.patchCustomSendMessage();
 		
 		PluginHelper.AutoUpdater.checkForUpdates({
 			version: this.getVersion(),
@@ -455,7 +455,7 @@ class PluginHelper {
 	}
 	
 	getVersion() {
-		return "2.1";
+		return "2.2";
 	}
 	
 	getAuthor() {
@@ -468,26 +468,33 @@ class PluginHelper {
 		}
 	}
 	
-	patchSendMessageWithEmbed() {
+	patchCustomSendMessage() {
 		const cancel = monkeyPatch(MessageActions, '_sendMessage', {
 			before: ({methodArguments: [channel, message]}) => {
-				if (message.embed) {
+				if (message.embed || message.isEmpty) {
 					monkeyPatch(MessageQueue, 'enqueue', {
 						once: true,
 						before: ({methodArguments: [action]}) => {
 							if (action.type === 'send') {
-								action.message.embed = message.embed;
+								if(message.embed) {
+									action.message.embed = message.embed;
+								}
+								if(message.isEmpty) {
+									action.message.content = "";
+								}
 							}
 						}
 					});
-					monkeyPatch(MessageParser, 'createMessage', {
-						once: true,
-						after: ({returnValue}) => {
-							if (returnValue) {
-								returnValue.embeds.push(message.embed);
+					if(message.embed) {
+						monkeyPatch(MessageParser, 'createMessage', {
+							once: true,
+							after: ({returnValue}) => {
+								if (returnValue) {
+									returnValue.embeds.push(message.embed);
+								}
 							}
-						}
-					});
+						});
+					}
 				}
 			}
 		});
@@ -545,7 +552,8 @@ PluginHelper.ChannelHelper = class {
 			channel.sendMessage = function(content, embed) {
 				let message = {
 					content: content,
-					channel_id: channel.id
+					channel_id: channel.id,
+					isEmpty: 0 === content.length
 				}
 
 				if(embed) {

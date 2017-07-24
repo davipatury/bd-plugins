@@ -5,6 +5,7 @@ class PQuote {
 	constructor() {
 		this.quote = null;
 		this.shifted = false;
+		this.emptyMessage = false;
 		PQuote.cancelPatches = [];
 	}
 	
@@ -67,6 +68,7 @@ class PQuote {
 			});
 				
 			this.patchSendMessageQuoted();
+			this.patchSendEmptyMessages();
 			this.injectCSS();
 			
 			if (bdPluginStorage.get('PQuote', 'quoteFullMessage') === undefined) {
@@ -94,7 +96,7 @@ class PQuote {
 	}
 	
 	getVersion() {
-		return "2.1";
+		return "2.2";
 	}
 	
 	getAuthor() {
@@ -208,6 +210,8 @@ class PQuote {
 		);
 	}
 	
+	//getOwnerInstance($('.channel-text-area-default')[0], {}).props.children.props.children.props;
+	
 	// Get a message's messageGroup
 	getMessageGroup(message) {
 		const $messageGroups = $('.message-group').toArray();
@@ -230,6 +234,10 @@ class PQuote {
 		const cancel = monkeyPatch(MessageActions, 'sendMessage', {
 			before: ({methodArguments: [channel, message]}) => {
 				if (self.quote) {
+					if (self.emptyMessage) {
+						message.isEmpty = true;
+						self.emptyMessage = false;
+					}
 					let quotedMessage = self.quote.message;
 					let quotedChannel = self.quote.channel;
 					let quotedMessageGroup = self.quote.messageGroup;
@@ -241,10 +249,8 @@ class PQuote {
 						footer: {},
 						fields: [],
 						author: {
-							name: quotedMessage.author.username + "#" + quotedMessage.author.discriminator,
-							icon_url: PluginHelper.Constants.AVATAR_URL_TEMPLATE
-								.replace("@user_id", quotedMessage.author.id)
-								.replace("@avatar", quotedMessage.author.avatar)
+							name: quotedMessage.author.tag,
+							icon_url: quotedMessage.author.getAvatarURL()
 						}
 					}
 					
@@ -313,6 +319,25 @@ class PQuote {
 			}
 		});
 		PQuote.cancelPatches.push(cancel);
+	}
+	
+	patchSendEmptyMessages() {
+		let self = this;
+		
+		const cancel = monkeyPatch(self.getTextAreaInstance(), 'handleSendMessage', {
+			instead: ({methodArguments: [e], originalMethod}) => {
+				if (self.quote && 0 === e.length) {
+					e = "there is nothing here bro";
+					self.emptyMessage = true;
+				}
+				originalMethod(e);
+			}
+		});
+		PQuote.cancelPatches.push(cancel);
+	}
+	
+	getTextAreaInstance() {
+		return getOwnerInstance($('form')[0], {});
 	}
 	
 	injectCSS() {
