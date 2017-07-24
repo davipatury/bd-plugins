@@ -96,7 +96,7 @@ class PQuote {
 	}
 	
 	getVersion() {
-		return "2.2";
+		return "2.1";
 	}
 	
 	getAuthor() {
