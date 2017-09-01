@@ -410,10 +410,16 @@ const MessageQueue = WebpackModules.findByUniqueProperties(['enqueue']);
 const MessageParser = WebpackModules.findByUniqueProperties(['createMessage', 'parse', 'unparse']);
 
 const ContextMenuItemsGroup = WebpackModules.find(m => typeof m === "function" && m.length === 1 && m.toString().search(/className\s*:\s*["']item-group["']/) !== -1);
+ContextMenuItemsGroup.displayName = 'ContextMenuItemsGroup';
 const ContextMenuItem = WebpackModules.find(m => typeof m === "function" && m.length === 1 && m.toString().search(/\.label\b.*\.hint\b.*\.action\b/) !== -1);
+ContextMenuItem.displayName = 'ContextMenuItem';
 
 const ModalsStack = WebpackModules.findByUniqueProperties(['push', 'update', 'pop', 'popWithKey']);
+ModalsStack.displayName = 'ModalsStack';
 const ConfirmModal = WebpackModules.find(m => typeof m === "function" && m.length === 1 && m.prototype && m.prototype.handleCancel && m.prototype.handleSubmit && m.prototype.handleMinorConfirm);
+ConfirmModal.displayName = 'ConfirmModal';
+const TooltipWrapper = WebpackModules.find(m => m && m.prototype && m.prototype.showDelayed);
+TooltipWrapper.displayName = 'TooltipWrapper';
 
 class PluginHelper {
 	
@@ -664,7 +670,6 @@ PluginHelper.MessageButtons = class {
 	
 	static addButtonToMessages(className, tooltip, action, filter, cancelId) {
 		ReactComponents.get('Message', Message => {
-			const Tooltip = WebpackModules.findByDisplayName('Tooltip');
 			const cancel = Renderer.patchRender(Message, [
 				{
 					filter: filter,
@@ -672,7 +677,7 @@ PluginHelper.MessageButtons = class {
 						className: 'markup',
 					},
 					method: 'before',
-					content: thisObject => React.createElement(Tooltip, {text: tooltip}, React.createElement("div", {
+					content: thisObject => React.createElement(TooltipWrapper, {text: tooltip}, React.createElement("div", {
 						className: className,
 						onClick: action.bind(this, thisObject.props, thisObject),
 						onMouseDown: e => {
