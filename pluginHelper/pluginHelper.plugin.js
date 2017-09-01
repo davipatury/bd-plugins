@@ -461,7 +461,7 @@ class PluginHelper {
 	}
 	
 	getVersion() {
-		return "2.3";
+		return "2.4";
 	}
 	
 	getAuthor() {
@@ -503,41 +503,51 @@ class PluginHelper {
 }
 PluginHelper.ContextMenu = class {
 	
-	static addOptionToMessageContextMenu(label, hint, action, cancelId) {
-		this.addOptionToContextMenu('MessageContextMenu', label, hint, action, cancelId);
+	/*
+	{
+		label: "Copy",
+		hint: "Ctrl+C",
+		action: () => {
+			// bla
+		},
+		cancelId: "a"
+	}
+	*/
+	static addOptionToMessageContextMenu(options) {
+		this.addOptionToContextMenu('MessageContextMenu', options);
 	}
 		
-	static addOptionToUserContextMenu(label, hint, action, cancelId) {
-		this.addOptionToContextMenu('UserContextMenu', label, hint, action, cancelId);
+	static addOptionToUserContextMenu(options) {
+		this.addOptionToContextMenu('UserContextMenu', options);
 	}
 	
-	static addOptionToChannelContextMenu(label, hint, action, cancelId) {
-		this.addOptionToContextMenu('ChannelContextMenu', label, hint, action, cancelId);
+	static addOptionToChannelContextMenu(options) {
+		this.addOptionToContextMenu('ChannelContextMenu', options);
 	}
 	
-	static addOptionToGuildContextMenu(label, hint, action, cancelId) {
-		this.addOptionToContextMenu('GuildContextMenu', label, hint, action, cancelId);
+	static addOptionToGuildContextMenu(options) {
+		this.addOptionToContextMenu('GuildContextMenu', options);
 	}
 	
-	static addOptionToContextMenu(contextMenuId, label, hint, action, filter, cancelId) {
+	static addOptionToContextMenu(contextMenuId, options) {
 		ReactComponents.get(contextMenuId, ContextMenu => {
 			const cancel = Renderer.patchRender(ContextMenu, [
 				{
-					filter: filter,
+					filter: options.filter,
 					selector: {
 						type: ContextMenuItemsGroup,
 					},
 					method: 'append',
 					content: thisObject => React.createElement(ContextMenuItem, {
-						label: typeof label === "function" ? label(thisObject.props) : label,
-						hint: typeof hint === "function" ? hint(thisObject.props) : hint,
-						action: action.bind(this, thisObject.props, thisObject)
+						label: typeof options.label === "function" ? options.label(thisObject.props) : options.label,
+						hint: typeof options.hint === "function" ? options.hint(thisObject.props) : options.hint,
+						action: options.action.bind(this, thisObject.props, thisObject)
 					})
 				}
 			]);
 			PluginHelper.cancelPatches.allCancelPatches.push(cancel);
-			if(cancelId) {
-				PluginHelper.cancelPatches.specialCancelPatches[cancelId] = cancel;
+			if(options.cancelId) {
+				PluginHelper.cancelPatches.specialCancelPatches[options.cancelId] = cancel;
 			}
 		});
 	}
@@ -668,18 +678,31 @@ PluginHelper.Modals = class {
 
 PluginHelper.MessageButtons = class {
 	
-	static addButtonToMessages(className, tooltip, action, filter, cancelId) {
+	/*
+	{
+		className: "class",
+		tooltip: "bla",
+		action: () => {
+			// bla
+		},
+		filter: (props) => {
+			return true
+		},
+		cancelId: "id"
+	}
+	*/
+	static addButtonToMessages(options) {
 		ReactComponents.get('Message', Message => {
 			const cancel = Renderer.patchRender(Message, [
 				{
-					filter: filter,
+					filter: options.filter,
 					selector: {
 						className: 'markup',
 					},
 					method: 'before',
-					content: thisObject => React.createElement(TooltipWrapper, {text: tooltip}, React.createElement("div", {
-						className: className,
-						onClick: action.bind(this, thisObject.props, thisObject),
+					content: thisObject => React.createElement(TooltipWrapper, {text: options.tooltip}, React.createElement("div", {
+						className: options.className,
+						onClick: options.action.bind(this, thisObject.props, thisObject),
 						onMouseDown: e => {
 							e.preventDefault();
 							e.stopPropagation();
@@ -688,8 +711,8 @@ PluginHelper.MessageButtons = class {
 				}
 			]);
 			PluginHelper.cancelPatches.allCancelPatches.push(cancel);
-			if(cancelId) {
-				PluginHelper.cancelPatches.specialCancelPatches[cancelId] = cancel;
+			if(options.cancelId) {
+				PluginHelper.cancelPatches.specialCancelPatches[options.cancelId] = cancel;
 			}
 		});
 	}
@@ -702,21 +725,24 @@ PluginHelper.MessageButtons = class {
 
 PluginHelper.NotificationHelper = class {
 	
-	static sendNotification(title, body, iconUrl, silent, notificationId) {
+	/*
+	{
+		title: "Title",
+		body: "Body",
+		icon: "Icon url",
+		silent: false,
+		id: "Notification id"
+	}
+	*/
+	static sendNotification(options) {
 		BdApi.getIpc().send(
 			"NOTIFICATION_SHOW",
-			{
-				title: title,
-				body: body,
-				icon: iconUrl,
-				silent: silent,
-				id: notificationId
-			}
+			options
 		);
 	}
 	
-	static closeNotification(notificationId) {
-		BdApi.getIpc().send("NOTIFICATION_CLOSE", notificationId);
+	static closeNotification(id) {
+		BdApi.getIpc().send("NOTIFICATION_CLOSE", id);
 	}
 	
 	static onNotificationClick(notificationId, action) {
@@ -782,6 +808,58 @@ PluginHelper.AutoUpdater = class {
 		} else if (process.platform == "darwin"){
 			return process.env.HOME + "/Library/Preferences/BetterDiscord/themes/";
 		}
+	}
+	
+}
+
+PluginHelper.Settings = class {
+	
+	constructor(pluginName) {
+		this.pluginName = pluginName;
+		this.checkboxes = [];
+	}
+	
+	getSetting(key) {
+		return true
+	}
+	
+	static toggleCheckbox(elem) {
+		console.log(elem)
+	}
+	
+	addCheckbox(text, settingsKey, defaultValue) {
+		if(bdPluginStorage.get(this.pluginName, settingsKey) == undefined && defaultValue) {
+			bdPluginStorage.set(this.pluginName, settingsKey, defaultValue);
+		}
+		this.checkboxes[this.checkboxes.length] = {
+			text: text,
+			settingsKey: settingsKey
+		}
+	}
+	
+	getSettingsPanel() {
+		let returnValue = "<div>";
+		
+		this.checkboxes.forEach(checkbox => {
+			let checkboxValue = bdPluginStorage.get(this.pluginName, checkbox.settingsKey) ? 'checked="on"' : '';
+			returnValue += `
+				<div>
+					<div class="bda-left">
+						<div class="scroller-wrap fade">
+							<div class="scroller">${checkbox.text}</div>
+						</div>
+					</div>
+					<div class="bda-right">
+						<label class="ui-switch-wrapper ui-flex-child" style="flex: 0 0 auto;">
+							<input type="checkbox" class="ui-switch-checkbox" id="${checkbox.settingsKey}" onchange="PluginHelper.Settings.toggleCheckbox(this)" ${checkboxValue}>
+							<div class="ui-switch"></div>
+						</label>
+					</div>
+				</div>`
+		});
+		
+		returnValue += "</div>";
+		return returnValue;
 	}
 	
 }
