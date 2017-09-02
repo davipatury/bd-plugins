@@ -461,7 +461,7 @@ class PluginHelper {
 	}
 	
 	getVersion() {
-		return "2.4";
+		return "2.5";
 	}
 	
 	getAuthor() {
@@ -820,11 +820,12 @@ PluginHelper.Settings = class {
 	}
 	
 	getSetting(key) {
-		return true
+		return bdPluginStorage.get(this.pluginName, key)
 	}
 	
-	static toggleCheckbox(elem) {
-		console.log(elem)
+	static toggleCheckbox(e) {
+		let elem = $(e)
+		bdPluginStorage.set(elem.attr("data-pname"), elem.attr("data-skey"), elem.is(":checked"))
 	}
 	
 	addCheckbox(text, settingsKey, defaultValue) {
@@ -851,7 +852,7 @@ PluginHelper.Settings = class {
 					</div>
 					<div class="bda-right">
 						<label class="ui-switch-wrapper ui-flex-child" style="flex: 0 0 auto;">
-							<input type="checkbox" class="ui-switch-checkbox" id="${checkbox.settingsKey}" onchange="PluginHelper.Settings.toggleCheckbox(this)" ${checkboxValue}>
+							<input type="checkbox" class="ui-switch-checkbox" data-skey="${checkbox.settingsKey}" data-pname="${this.pluginName}" onchange="PluginHelper.Settings.toggleCheckbox(this)" ${checkboxValue}>
 							<div class="ui-switch"></div>
 						</label>
 					</div>
