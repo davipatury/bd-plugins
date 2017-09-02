@@ -442,6 +442,11 @@ class PluginHelper {
 			pluginUrl: 'https://raw.githubusercontent.com/davipatury/bd-plugins/master/pluginHelper/pluginHelper.plugin.js',
 			name: this.getName()
 		});
+		
+		this.Settings = new PluginHelper.Settings(this.getName())
+							.createCategory("Autoupdater Configuration")
+								.addCheckbox('Autoupdate', 'autoUpdate', true)
+								.end()
 	}
 	
 	stop() {
@@ -449,6 +454,7 @@ class PluginHelper {
 	}
 	
 	getSettingsPanel() {
+		if(this.Settings) return this.Settings.getSettingsPanel();
 		return "";
 	}
 	
@@ -461,7 +467,7 @@ class PluginHelper {
 	}
 	
 	getVersion() {
-		return "2.5";
+		return "2.6";
 	}
 	
 	getAuthor() {
@@ -758,11 +764,13 @@ PluginHelper.NotificationHelper = class {
 PluginHelper.AutoUpdater = class {
 	
 	static checkForUpdates(pluginInfo) {
+		let autoUpdate = bdPluginStorage.get(pluginInfo.name, 'autoUpdate')
+		autoUpdate = autoUpdate == null ? true : autoUpdate == "true" ? true : false
 		require('https').get(pluginInfo.jsonUrl, function(res) {
 			res.setEncoding('utf8');
 			res.on('data', function(body) {
 				let data = JSON.parse(body);
-				if(pluginInfo.version != data.version) {
+				if(pluginInfo.version != data.version && bdPluginStorage.get(pluginInfo.name, 'autoUpdate')) {
 					PluginHelper.AutoUpdater.update(pluginInfo);
 				}
 			});
@@ -816,51 +824,94 @@ PluginHelper.Settings = class {
 	
 	constructor(pluginName) {
 		this.pluginName = pluginName;
-		this.checkboxes = [];
+		this.categories = [];
 	}
 	
 	getSetting(key) {
-		return bdPluginStorage.get(this.pluginName, key)
+		let setting = bdPluginStorage.get(this.pluginName, key)
+		
+		if(setting == "true") return true
+		if(setting == "false") return false
+		
+		return setting
 	}
 	
 	static toggleCheckbox(e) {
 		let elem = $(e)
-		bdPluginStorage.set(elem.attr("data-pname"), elem.attr("data-skey"), elem.is(":checked"))
+		bdPluginStorage.set(elem.attr("data-pname"), elem.attr("data-skey"), elem.is(":checked").toString())
 	}
 	
-	addCheckbox(text, settingsKey, defaultValue) {
-		if(bdPluginStorage.get(this.pluginName, settingsKey) == undefined && defaultValue) {
-			bdPluginStorage.set(this.pluginName, settingsKey, defaultValue);
-		}
-		this.checkboxes[this.checkboxes.length] = {
-			text: text,
-			settingsKey: settingsKey
-		}
+	addCategory(category) {
+		this.categories[this.categories.length] = category
+		return category
+	}
+	
+	createCategory(name) {
+		let category = new PluginHelper.Settings.Category(this, name)
+		this.categories[this.categories.length] = category
+		return category
 	}
 	
 	getSettingsPanel() {
-		let returnValue = "<div>";
+		let returnValue = "<div style='margin-bottom: 20px;'>";
 		
-		this.checkboxes.forEach(checkbox => {
-			let checkboxValue = bdPluginStorage.get(this.pluginName, checkbox.settingsKey) ? 'checked="on"' : '';
+		this.categories.forEach(category => {
 			returnValue += `
 				<div>
-					<div class="bda-left">
-						<div class="scroller-wrap fade">
-							<div class="scroller">${checkbox.text}</div>
+					<div style="margin-bottom: 0px;">
+						<span class="bda-name">${category.name}</span>
+					</div>`
+			
+			category.checkboxes.forEach(checkbox => {
+				let checkboxValue = bdPluginStorage.get(this.pluginName, checkbox.settingsKey) == "true" ? 'checked="on"' : '';
+				returnValue += `
+					<div style="margin-top: 10px;">
+						<div class="bda-left">
+							<div class="scroller-wrap fade">
+								<div class="scroller">${checkbox.text}</div>
+							</div>
 						</div>
-					</div>
-					<div class="bda-right">
-						<label class="ui-switch-wrapper ui-flex-child" style="flex: 0 0 auto;">
-							<input type="checkbox" class="ui-switch-checkbox" data-skey="${checkbox.settingsKey}" data-pname="${this.pluginName}" onchange="PluginHelper.Settings.toggleCheckbox(this)" ${checkboxValue}>
-							<div class="ui-switch"></div>
-						</label>
-					</div>
-				</div>`
+						<div class="bda-right">
+							<label class="ui-switch-wrapper ui-flex-child" style="flex: 0 0 auto; margin-top: 0px;">
+								<input type="checkbox" class="ui-switch-checkbox" data-skey="${checkbox.settingsKey}" data-pname="${this.pluginName}" onchange="PluginHelper.Settings.toggleCheckbox(this)" ${checkboxValue}>
+								<div class="ui-switch"></div>
+							</label>
+						</div>
+					</div>`
+			});
+			
+			returnValue += "</div>"
 		});
 		
 		returnValue += "</div>";
 		return returnValue;
+	}
+	
+}
+
+PluginHelper.Settings.Category = class {
+	
+	constructor(settings, name) {
+		this.settings = settings;
+		this.name = name;
+		this.checkboxes = [];
+	}
+	
+	addCheckbox(text, settingsKey, defaultValue) {
+		if(bdPluginStorage.get(this.settings.pluginName, settingsKey) == null && defaultValue) {
+			bdPluginStorage.set(this.settings.pluginName, settingsKey, defaultValue ? defaultValue.toString() : defaultValue);
+		}
+		
+		this.checkboxes[this.checkboxes.length] = {
+			text: text,
+			settingsKey: settingsKey
+		}
+		
+		return this;
+	}
+	
+	end() {
+		return this.settings;
 	}
 	
 }

@@ -58,14 +58,23 @@ class PQuote {
 			$(document).on('keyup.pQuote keydown.pQuote', (e) => {
 				self.shifted = e.shiftKey
 			});
+			
+			$(document).ready(() => {
+				self.patchSendEmptyMessages()
+			});
 				
 			this.patchSendMessageQuoted();
 			this.patchSendEmptyMessages();
 			this.injectCSS();
 			
-			this.Settings = new PluginHelper.Settings('PQuote');
-			this.Settings.addCheckbox('Quote full message', 'quoteFullMessage', true);
-			this.Settings.addCheckbox('Use animations', 'useAnimation', true);
+			this.Settings = new PluginHelper.Settings(this.getName())
+									.createCategory("Autoupdater Configuration")
+										.addCheckbox('Autoupdate', 'autoUpdate', true)
+										.end()
+									.createCategory("Quote Configuration")
+										.addCheckbox('Quote full message', 'quoteFullMessage', true)
+										.addCheckbox('Use animations', 'useAnimation', true)
+										.end();
 		}
 	}
 	
@@ -77,9 +86,7 @@ class PQuote {
 	}
 	
 	getSettingsPanel() {
-		if(this.Settings) {
-			return this.Settings.getSettingsPanel();
-		}
+		if(this.Settings) return this.Settings.getSettingsPanel();
 		return "";
 	}
 	
@@ -92,7 +99,7 @@ class PQuote {
 	}
 	
 	getVersion() {
-		return "2.4";
+		return "2.5";
 	}
 	
 	getAuthor() {
@@ -375,26 +382,35 @@ class PQuote {
 		PQuote.cancelPatches.push(cancel);
 	}
 	
+	observer(e) {
+		this.patchSendEmptyMessages()
+	}
+	
 	// On Message Submitted
 	patchSendEmptyMessages() {
-		/*let self = this;
-		const cancel = monkeyPatch(getOwnerInstance($('form')[0]), 'handleSendMessage', {
-			instead: ({methodArguments: [e], originalMethod}) => {
-				if (self.quote && 0 === e.length) {
-					e = `${Math.round(+new Date()/1000)}`;
-					monkeyPatch(MessageQueue, 'enqueue', {
-						once: true,
-						before: ({methodArguments: [action]}) => {
-							if (action.type === 'send' && action.message.content == e) {
-								action.message.content = "";
-							}
+		let self = this;
+		if($('form').length > 0) {
+			let instance = getOwnerInstance($('form')[0]);
+			if(!instance.handleSendMessage.__monkeyPatched) {
+				const cancel = monkeyPatch(getOwnerInstance($('form')[0]), 'handleSendMessage', {
+					instead: ({methodArguments: [e], originalMethod}) => {
+						if (self.quote && 0 === e.length) {
+							e = `${Math.round(+new Date()/1000)}`;
+							monkeyPatch(MessageQueue, 'enqueue', {
+								once: true,
+								before: ({methodArguments: [action]}) => {
+									if (action.type === 'send' && action.message.content == e) {
+										action.message.content = "";
+									}
+								}
+							});
 						}
-					});
-				}
-				originalMethod(e);
+						originalMethod(e);
+					}
+				});
+				PQuote.cancelPatches.push(cancel);
 			}
-		});
-		PQuote.cancelPatches.push(cancel);*/
+		}
 	}
 	
 	injectCSS() {
