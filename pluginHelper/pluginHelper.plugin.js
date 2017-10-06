@@ -76,45 +76,31 @@ PDiscordInternals.WebpackModules = (() => {
 
 PDiscordInternals.getInternalInstance = e => e[Object.keys(e).find(k => k.startsWith("__reactInternalInstance"))];
 
-PDiscordInternals.getOwnerInstance = (e, options = {}) => {
-	const {include, exclude = ["Popout", "Tooltip", "Scroller", "BackgroundFlash"]} = options;
-	if (e === undefined) {
+PDiscordInternals.getOwnerInstance = (e, {include, exclude=["Popout", "Tooltip", "Scroller", "BackgroundFlash"]} = {}) => {
+	if (e === undefined)
 		return undefined;
-	}
 	const excluding = include === undefined;
 	const filter = excluding ? exclude : include;
-	
 	function getDisplayName(owner) {
-		const type = owner._currentElement.type;
-		const constructor = owner._instance && owner._instance.constructor;
-		return type.displayName || constructor && constructor.displayName || null;
+		const type = owner.type;
+		return type.displayName || type.name || null;
 	}
-	
 	function classFilter(owner) {
 		const name = getDisplayName(owner);
 		return (name !== null && !!(filter.includes(name) ^ excluding));
 	}
-		
-	for (let prev, curr = PDiscordInternals.getInternalInstance(e); !_.isNil(curr); prev = curr, curr = curr._hostParent) {
-		if (prev !== undefined && !_.isNil(curr._renderedChildren)) {
-			let owner = Object.values(curr._renderedChildren)
-				.find(v => !_.isNil(v._instance) && v.getHostNode() === prev.getHostNode());
-			if (!_.isNil(owner) && classFilter(owner)) {
-				return owner._instance;
-			}
-		}
-		
-		if (_.isNil(curr._currentElement)) {
+	
+	let internal = _.isNil(e.return)
+	for (let curr = internal ? PDiscordInternals.getInternalInstance(e).return : e.return; !_.isNil(curr); curr = curr.return) {
+		if (_.isNil(curr))
 			continue;
-		}
-		let owner = curr._currentElement._owner;
-		if (!_.isNil(owner) && classFilter(owner)) {
-			return owner._instance;
-		}
+		let owner = curr.stateNode;
+		if (!_.isNil(owner) && !(owner instanceof HTMLElement) && classFilter(curr))
+			return owner;
 	}
-		
+			
 	return null;
-};
+}
 
 PDiscordInternals.Renderer = (() => {
 	const recursiveArray = (parent, key, count = 1) => {
@@ -344,7 +330,7 @@ PDiscordInternals.Renderer = (() => {
 	};
 })();
 
-PDiscordInternals.React = PDiscordInternals.WebpackModules.findByUniqueProperties(['createMixin']);
+PDiscordInternals.React = PDiscordInternals.WebpackModules.findByUniqueProperties(['createFactory']);
 
 PDiscordInternals.ReactComponents = (() => {
 	const components = {};
@@ -467,7 +453,7 @@ class PluginHelper {
 	}
 	
 	getVersion() {
-		return "2.6";
+		return "2.7";
 	}
 	
 	getAuthor() {
@@ -571,9 +557,7 @@ PluginHelper.ChannelHelper = class {
 					isEmpty: 0 === content.length
 				}
 
-				if(embed) {
-					message.embed = embed;
-				}
+				if(embed) message.embed = embed;
 
 				MessageActions.sendMessage(channel.id, message)
 			}
@@ -583,7 +567,7 @@ PluginHelper.ChannelHelper = class {
 	}
 
 	static getCurrentChannel() {
-		return this.parseChannel(getOwnerInstance($('.chat')[0], {include: ["Channel"]}).state.channel);
+		return this.parseChannel(getOwnerInstance($('.chat')[0]).state.channel);
 	}
 	
 	static getCurrentChannelId() {
@@ -628,7 +612,7 @@ PluginHelper.GuildHelper = class {
 	}
 	
 	static getCurrentGuild() {
-		return this.parseGuild(getOwnerInstance($('.chat')[0], {include: ["Channel"]}).state.guild);
+		return this.parseGuild(getOwnerInstance($('.chat')[0]).state.guild);
 	}
 	
 	static getCurrentGuildId() {

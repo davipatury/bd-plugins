@@ -9,7 +9,11 @@ class PQuote {
 	}
 	
 	load() {}
-	unload() {}
+	unload() {
+		PQuote.cancelAllPatches();
+		BdApi.clearCSS('PQuote');
+		$(document).off('keyup.pQuote keydown.pQuote')
+	}
 	
 	start() {
 		if (PluginHelper) {
@@ -24,20 +28,19 @@ class PQuote {
 				
 			PluginHelper.ContextMenu.addOptionToMessageContextMenu({
 				label: 'Quote',
-				action: (props) => {
-					self.quoteMessage(props.channel, props.message, self.shifted);
+				action: (props, object) => {
+					self.quoteMessage(props.channel, props.message, self.shifted, object);
 				}
 			});
 				
 			PluginHelper.MessageButtons.addButtonToMessages({
 				className: 'message-button btn-quote',
 				tooltip: 'Quote',
-				action: (props) => {
-					self.quoteMessage(props.channel, props.message, self.shifted);
+				action: (props, object) => {
+					self.quoteMessage(props.channel, props.message, self.shifted, object);
 				},
 				filter: ({thisObject}) => {
-					let owner = thisObject._reactInternalInstance._currentElement._owner._instance;
-					return !owner.props.fake
+					return !getOwnerInstance(thisObject._reactInternalFiber.return).props.fake
 				}
 			});
 			
@@ -50,8 +53,7 @@ class PQuote {
 					}
 				},
 				filter: ({thisObject}) => {
-					let owner = thisObject._reactInternalInstance._currentElement._owner._instance;
-					return owner.props.fake
+					return getOwnerInstance(thisObject._reactInternalFiber.return).props.fake
 				}
 			});
 			
@@ -99,7 +101,7 @@ class PQuote {
 	}
 	
 	getVersion() {
-		return "2.5";
+		return "2.7";
 	}
 	
 	getAuthor() {
@@ -114,10 +116,12 @@ class PQuote {
 	
 	// Clear the quoting message
 	clearQuote(useAnimation) {
-		this.quote.messageGroup.messages.forEach((message) => {
-			message.quoteDeleted = false;
-		});
-		this.quote = null;
+		if(this.quote) {
+			this.quote.messageGroup.messages.forEach((message) => {
+				message.quoteDeleted = null;
+			});
+			this.quote = null;
+		}
 
 		$(".quote-delete").off('click.pQuote');
 		
@@ -156,17 +160,20 @@ class PQuote {
 	}
 	
 	// Quote a message
-	quoteMessage(channel, message, quoteAllMessage) {
+	quoteMessage(channel, message, quoteAllMessage, messageComponent) {
 		let useAnimation = this.Settings.getSetting('useAnimation');
 		if (this.quote) {
 			this.clearQuote(false);
 			useAnimation = false;
 		}
+		
+		// Message group
+		let messageGroup = getOwnerInstance(messageComponent._reactInternalFiber);
 
 		this.quote = {
 			channel: channel,
 			message: message,
-			messageGroup: $.extend(true, {}, this.getMessageGroup(message).props)
+			messageGroup: $.extend(true, {}, messageGroup.props)
 		};
 
 		this.quote.messageGroup.fake = true;
@@ -235,9 +242,8 @@ class PQuote {
 		let self = this;
 		
 		// Create message preview
-		let MessageGroup = WebpackModules.findByDisplayName("MessageGroup");
 		ReactDOM.render(
-			React.createElement(MessageGroup, this.quote.messageGroup, null),
+			React.createElement(getOwnerInstance($('.message-group')[0])._reactInternalFiber.type, this.quote.messageGroup, null),
 			$(".quote-msg")[0],
 			() => {
 				$('.quote-msg').prepend(`
@@ -269,42 +275,25 @@ class PQuote {
 			}
 		);
 	}
-	
-	// Get a message's messageGroup
-	getMessageGroup(message) {
-		const $messageGroups = $('.message-group').toArray();
-		for (let element of $messageGroups) {
-			let messageGroup = getOwnerInstance(element, {include: ["MessageGroup"]});
-			const messages = messageGroup.props.messages;
-			if (messages.includes(message)) {
-				return messageGroup;
-			}
-		}
-		return null;
-	}
 
 	// Create Embed For Quoted Message
 	createQuoteEmbed(message) {
-		let quotedMessage = this.quote.message;
-		let quotedChannel = this.quote.channel;
-		let quotedMessageGroup = this.quote.messageGroup;
-					
-		let embed = {
-			description: '',
-			timestamp: quotedMessage.timestamp.toISOString(),
-			color: quotedMessage.colorString && Number(quotedMessage.colorString.replace('#', '0x')),
-			footer: {},
-			fields: [],
-			author: {
-				name: quotedMessage.author.tag
-			}
-		}
-
-		if(quotedMessage.author.avatar) {
-			embed.author.icon_url = quotedMessage.author.getAvatarURL();
-		} else {
-			embed.author.icon_url = "https://discordapp.com/assets/0e291f67c9274a1abdddeb3fd919cbaa.png";
-		}
+		let quotedMessage = this.quote.message,
+			quotedChannel = this.quote.channel,
+			quotedMessageGroup = this.quote.messageGroup,
+		
+			avatarURL = quotedMessage.author.getAvatarURL(),
+			embed = {
+				description: '',
+				timestamp: quotedMessage.timestamp.toISOString(),
+				color: quotedMessage.colorString && Number(quotedMessage.colorString.replace('#', '0x')),
+				footer: {},
+				fields: [],
+				author: {
+					name: quotedMessage.author.tag,
+					icon_url: avatarURL.startsWith("https://") ? avatarURL : `https://discordapp.com${avatarURL}`
+				}
+			};
 					
 		switch(quotedChannel.type) {
 			case PluginHelper.Constants.ChannelType.GuildTextChannel:
